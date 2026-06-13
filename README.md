@@ -376,8 +376,38 @@ No model-performance claims are made until the final evaluation is complete.
 8. Validate behaviour on controlled test issues
 9. Enable the workflow on the target repository
 
+## GitHub App Setup
+
+To run KubeTag under its own bot identity (e.g. `kubetag[bot]`) and authenticate securely, you must configure a GitHub App:
+
+1. **Register the GitHub App:**
+   - Go to your GitHub Settings > **Developer settings** > **GitHub Apps** > **New GitHub App**.
+   - Set a unique name (e.g., `KubeTag` or another unique name).
+   - Set the Homepage URL to your repository URL.
+   - **Disable Webhooks:** Uncheck the "Active" checkbox under the Webhooks section (GitHub Actions will supply the issue event payload).
+
+2. **Configure Permissions:**
+   - Under **Repository permissions**, grant:
+     - **Issues:** Read & write (required to apply labels directly).
+     - **Metadata:** Read-only (default requirement).
+   - Under **Where can this GitHub App be installed?**, select **Only on this account**.
+
+3. **Install the App:**
+   - Click **Install App** in the sidebar and install it on the target repository.
+
+4. **Generate Credentials & Secrets:**
+   - Copy the **Client ID** / **App ID** from the App overview page. Store it as a GitHub Repository Variable named `KUBETAG_APP_CLIENT_ID`.
+   - Scroll down to the **Private keys** section and click **Generate a private key**. This downloads a `.pem` file.
+   - Store the complete contents of this `.pem` private key as a GitHub Repository Secret named `KUBETAG_APP_PRIVATE_KEY`.
+   - **Security Warning:** Never commit the `.pem` private key file to git (it is ignored automatically via `.gitignore`).
+
+5. **Runtime Authentication:**
+   - During each workflow execution, the workflow generates a short-lived installation access token using the App credentials.
+   - All labeling actions on issues will appear under the registered App identity (e.g., `kubetag[bot]`).
+
 ## Motivation
 
 KubeTag is intended to reduce repetitive issue-triage work and improve consistency while preserving maintainer control.
 
 The system does not remove labels or overwrite human decisions. It only adds validated labels when the model has sufficient confidence.
+

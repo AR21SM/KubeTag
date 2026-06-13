@@ -16,3 +16,6 @@ artifacts/model/*
 !artifacts/model/label_schema.json
 !artifacts/model/thresholds.json
 !artifacts/model/model_manifest.json
+
+# Private Keys
+*.pem
