@@ -1,4 +1,4 @@
-# KubeTag
+# <img src="kubetag_logo_final.png" width="40" height="40" valign="middle" /> KubeTag
 
 **ML-powered Kubernetes issue labeling for `kind/*`, `sig/*`, and `area/*` taxonomies.**
 
