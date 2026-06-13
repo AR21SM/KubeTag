@@ -12,6 +12,7 @@ def test_load_config_defaults() -> None:
         assert config.apply_labels is False
         assert config.log_level == "INFO"
         assert config.request_timeout_seconds == 30
+        assert config.allow_development_writes is False
 
 def test_load_config_from_env() -> None:
     env_vars = {
@@ -21,6 +22,7 @@ def test_load_config_from_env() -> None:
         "APPLY_LABELS": "yes",
         "LOG_LEVEL": "DEBUG",
         "REQUEST_TIMEOUT_SECONDS": "45",
+        "ALLOW_DEVELOPMENT_WRITES": "true",
     }
     with patch.dict(os.environ, env_vars, clear=True):
         config = load_config()
@@ -30,3 +32,4 @@ def test_load_config_from_env() -> None:
         assert config.apply_labels is True
         assert config.log_level == "DEBUG"
         assert config.request_timeout_seconds == 45
+        assert config.allow_development_writes is True

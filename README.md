@@ -1,4 +1,4 @@
-# <img src="kubetag_logo_final.png" width="40" height="40" valign="middle" /> KubeTag
+# <img src="kubetag_logo.png" width="54" height="54" valign="middle" /> KubeTag
 
 **ML-powered Kubernetes issue labeling for `kind/*`, `sig/*`, and `area/*` taxonomies.**
 
@@ -120,8 +120,7 @@ kubetag/
 │       ├── github/
 │       │   ├── __init__.py
 │       │   ├── events.py
-│       │   ├── client.py
-│       │   └── labels.py
+│       │   └── client.py
 │       └── inference/
 │           ├── __init__.py
 │           ├── base.py
@@ -205,28 +204,18 @@ Dry run complete. No labels were applied.
 
 ## GitHub Actions Workflow
 
-The workflow runs for:
+The workflow triggers on issue events (`opened`, `edited`, `reopened`) and generates a short-lived GitHub App installation token.
 
-```yaml
-on:
-  issues:
-    types:
-      - opened
-      - edited
-      - reopened
-```
-
-Required permissions:
+Required workflow permissions:
 
 ```yaml
 permissions:
   contents: read
-  issues: write
 ```
 
-KubeTag uses the built-in `GITHUB_TOKEN`. No custom token is required for normal repository execution.
+KubeTag uses the short-lived installation access token generated from your custom GitHub App (`KUBETAG_APP_CLIENT_ID` and `KUBETAG_APP_PRIVATE_KEY`). No manual Personal Access Token (PAT) is required.
 
-Workflow concurrency should be grouped by repository and issue number so that repeated edits do not process the same issue simultaneously.
+Workflow concurrency is grouped by repository and issue number so that repeated edits do not process the same issue simultaneously.
 
 ## Prediction Contract
 
