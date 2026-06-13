@@ -1,0 +1,21 @@
+{
+  "model_name": "kubernetes-issue-triage-dev",
+  "model_version": "0.0.1-dev",
+  "backend": "development",
+  "trained_at": "2026-07-10T12:00:00Z",
+  "max_length": 512,
+  "labels": [
+    "kind/bug",
+    "kind/feature",
+    "kind/cleanup",
+    "sig/cli",
+    "sig/api-machinery",
+    "sig/auth",
+    "sig/node",
+    "sig/scheduling",
+    "area/kubectl",
+    "area/provider",
+    "area/security"
+  ],
+  "artifact_format": "manifest"
+}

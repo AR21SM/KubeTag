@@ -1,0 +1,18 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+build/
+dist/
+*.egg-info/
+
+# Model artifacts (ignore heavy files, keep schemas/manifests)
+artifacts/model/*
+!artifacts/model/README.md
+!artifacts/model/label_schema.json
+!artifacts/model/thresholds.json
+!artifacts/model/model_manifest.json

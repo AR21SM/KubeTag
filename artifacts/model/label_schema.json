@@ -1,0 +1,15 @@
+{
+  "labels": [
+    {"name": "kind/bug", "taxonomy": "kind"},
+    {"name": "kind/feature", "taxonomy": "kind"},
+    {"name": "kind/cleanup", "taxonomy": "kind"},
+    {"name": "sig/cli", "taxonomy": "sig"},
+    {"name": "sig/api-machinery", "taxonomy": "sig"},
+    {"name": "sig/auth", "taxonomy": "sig"},
+    {"name": "sig/node", "taxonomy": "sig"},
+    {"name": "sig/scheduling", "taxonomy": "sig"},
+    {"name": "area/kubectl", "taxonomy": "area"},
+    {"name": "area/provider", "taxonomy": "area"},
+    {"name": "area/security", "taxonomy": "area"}
+  ]
+}
