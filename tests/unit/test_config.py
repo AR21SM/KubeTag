@@ -1,9 +1,10 @@
 import os
 from unittest.mock import patch
-from kubetag.config import load_config
+import pytest
+from kubetag.config import ConfigurationError, load_config
+
 
 def test_load_config_defaults() -> None:
-    # Clear any environment variables that might interfere
     with patch.dict(os.environ, {}, clear=True):
         config = load_config()
         assert config.predictor_backend == "development"
@@ -13,6 +14,7 @@ def test_load_config_defaults() -> None:
         assert config.log_level == "INFO"
         assert config.request_timeout_seconds == 30
         assert config.allow_development_writes is False
+
 
 def test_load_config_from_env() -> None:
     env_vars = {
@@ -33,3 +35,15 @@ def test_load_config_from_env() -> None:
         assert config.log_level == "DEBUG"
         assert config.request_timeout_seconds == 45
         assert config.allow_development_writes is True
+
+
+def test_rejects_invalid_backend() -> None:
+    with patch.dict(os.environ, {"PREDICTOR_BACKEND": "unknown"}, clear=True):
+        with pytest.raises(ConfigurationError, match="Unsupported"):
+            load_config()
+
+
+def test_rejects_invalid_timeout() -> None:
+    with patch.dict(os.environ, {"REQUEST_TIMEOUT_SECONDS": "zero"}, clear=True):
+        with pytest.raises(ConfigurationError, match="must be an integer"):
+            load_config()

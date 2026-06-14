@@ -1,9 +1,15 @@
+from __future__ import annotations
+
 import os
 from dataclasses import dataclass
 
+SUPPORTED_BACKENDS = {"development", "transformer"}
+TRUE_VALUES = {"1", "true", "yes"}
+
+
 class ConfigurationError(Exception):
-    """Exception raised for configuration mismatch or invalid runtime settings."""
     pass
+
 
 @dataclass(frozen=True)
 class AppConfig:
@@ -15,34 +21,29 @@ class AppConfig:
     request_timeout_seconds: int
     allow_development_writes: bool
 
+
+def _boolean(name: str, default: str = "false") -> bool:
+    return os.environ.get(name, default).strip().lower() in TRUE_VALUES
+
+
 def load_config() -> AppConfig:
-    """Load and validate the application configuration from environment variables."""
-    predictor_backend = os.environ.get("PREDICTOR_BACKEND", "development").lower().strip()
-    model_dir = os.environ.get("MODEL_DIR", "artifacts/model")
-    
-    dry_run_str = os.environ.get("DRY_RUN", "false").lower()
-    dry_run = dry_run_str in ("true", "1", "yes")
-    
-    apply_labels_str = os.environ.get("APPLY_LABELS", "false").lower()
-    apply_labels = apply_labels_str in ("true", "1", "yes")
-    
-    log_level = os.environ.get("LOG_LEVEL", "INFO").upper()
-    
-    timeout_str = os.environ.get("REQUEST_TIMEOUT_SECONDS", "30")
+    backend = os.environ.get("PREDICTOR_BACKEND", "development").strip().lower()
+    if backend not in SUPPORTED_BACKENDS:
+        raise ConfigurationError(f"Unsupported PREDICTOR_BACKEND: {backend}")
     try:
-        request_timeout_seconds = int(timeout_str)
-    except ValueError:
-        request_timeout_seconds = 30
-        
-    allow_dev_str = os.environ.get("ALLOW_DEVELOPMENT_WRITES", "false").lower()
-    allow_development_writes = allow_dev_str in ("true", "1", "yes")
-        
+        timeout = int(os.environ.get("REQUEST_TIMEOUT_SECONDS", "30"))
+    except ValueError as error:
+        raise ConfigurationError(
+            "REQUEST_TIMEOUT_SECONDS must be an integer"
+        ) from error
+    if timeout <= 0:
+        raise ConfigurationError("REQUEST_TIMEOUT_SECONDS must be positive")
     return AppConfig(
-        predictor_backend=predictor_backend,
-        model_dir=model_dir,
-        dry_run=dry_run,
-        apply_labels=apply_labels,
-        log_level=log_level,
-        request_timeout_seconds=request_timeout_seconds,
-        allow_development_writes=allow_development_writes,
+        predictor_backend=backend,
+        model_dir=os.environ.get("MODEL_DIR", "artifacts/model"),
+        dry_run=_boolean("DRY_RUN"),
+        apply_labels=_boolean("APPLY_LABELS"),
+        log_level=os.environ.get("LOG_LEVEL", "INFO").strip().upper(),
+        request_timeout_seconds=timeout,
+        allow_development_writes=_boolean("ALLOW_DEVELOPMENT_WRITES"),
     )
