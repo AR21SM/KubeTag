@@ -1,213 +1,138 @@
-import json
+from __future__ import annotations
+
 import logging
 import os
-from typing import Optional
 
-from kubetag.config import load_config
+from kubetag.config import AppConfig, load_config
 from kubetag.domain import IssueEvent
-from kubetag.github.client import GitHubClient
+from kubetag.github.client import GitHubClient, GitHubClientError
 from kubetag.github.events import (
     IgnoredEventError,
     MalformedEventError,
     parse_issue_event,
 )
+from kubetag.inference.artifacts import ArtifactValidationError
 from kubetag.inference.factory import create_predictor
 from kubetag.inference.postprocessing import (
-    postprocess_predictions,
-    validate_artifacts,
     get_labels_to_apply,
-    ArtifactValidationError,
+    postprocess_predictions,
 )
 from kubetag.text_processing import prepare_text
 
 logger = logging.getLogger(__name__)
 
+
+def _resolve_input(
+    title: str | None,
+    body: str | None,
+    event_path: str | None,
+) -> tuple[str, str | None, IssueEvent | None]:
+    if title is not None:
+        return title, body, None
+    resolved_path = event_path or os.environ.get("GITHUB_EVENT_PATH")
+    if not resolved_path:
+        raise MalformedEventError("No issue input or GITHUB_EVENT_PATH was provided")
+    event = parse_issue_event(resolved_path)
+    return event.title, event.body, event
+
+
+def _is_dry_run(config: AppConfig, override: bool | None) -> bool:
+    return config.dry_run if override is None else override
+
+
 def run_application(
-    title: Optional[str] = None,
-    body: Optional[str] = None,
-    event_path: Optional[str] = None,
-    dry_run_override: Optional[bool] = None,
+    title: str | None = None,
+    body: str | None = None,
+    event_path: str | None = None,
+    dry_run_override: bool | None = None,
+    config: AppConfig | None = None,
 ) -> int:
-    """Run the KubeTag pipeline.
-    
-    Args:
-        title: Explicit issue title (local dry-run).
-        body: Explicit issue body (local dry-run).
-        event_path: Path to the event file (GHA or local fixture).
-        dry_run_override: Manual override for dry-run configuration.
-        
-    Returns:
-        Exit code: 0 for success (or gracefully ignored event), non-zero for failure.
-    """
-    try:
-        config = load_config()
-    except Exception as e:
-        logger.error("Failed to load configuration: %s", e)
-        return 1
-        
-    is_dry_run = config.dry_run
-    if dry_run_override is not None:
-        is_dry_run = dry_run_override
-        
+    config = config or load_config()
+    dry_run = _is_dry_run(config, dry_run_override)
+
     if (
-        not is_dry_run
+        not dry_run
         and config.predictor_backend == "development"
         and not config.allow_development_writes
     ):
-        logger.error(
-            "Development predictor cannot perform live writes unless "
-            "ALLOW_DEVELOPMENT_WRITES=true."
-        )
+        logger.error("Development predictions cannot be written in live mode")
         return 1
-
-    if not is_dry_run and not config.apply_labels:
-        logger.info(
-            "Live label application is disabled because APPLY_LABELS is false."
-        )
+    if not dry_run and not config.apply_labels:
+        logger.info("Live label application is disabled")
         return 0
 
     try:
-        validate_artifacts(config.model_dir, config.predictor_backend)
-    except ArtifactValidationError as e:
-        logger.error("Artifact validation failed: %s", e)
-        return 1
-        
-    logger.info("Starting pipeline (dry_run=%s, backend=%s)", is_dry_run, config.predictor_backend)
-
-    event_info: Optional[IssueEvent] = None
-    
-    if title is not None:
-        logger.info("Running triage with explicit title/body inputs.")
-        combined_text = prepare_text(title, body)
-    elif event_path is not None:
-        logger.info("Parsing event file from path: %s", event_path)
-        try:
-            event_info = parse_issue_event(event_path)
-            combined_text = prepare_text(event_info.title, event_info.body)
-        except IgnoredEventError as e:
-            logger.info("Event ignored: %s", e)
-            return 0
-        except MalformedEventError as e:
-            logger.error("Malformed event error: %s", e)
-            return 1
-    else:
-        env_event_path = os.environ.get("GITHUB_EVENT_PATH")
-        if not env_event_path:
-            logger.error("Missing GITHUB_EVENT_PATH environment variable and no dry-run inputs provided.")
-            return 1
-            
-        logger.info("Parsing event file from environment path: %s", env_event_path)
-        try:
-            event_info = parse_issue_event(env_event_path)
-            combined_text = prepare_text(event_info.title, event_info.body)
-        except IgnoredEventError as e:
-            logger.info("Event ignored: %s", e)
-            return 0
-        except MalformedEventError as e:
-            logger.error("Malformed event error: %s", e)
-            return 1
-
-    schema_path = os.path.join(config.model_dir, "label_schema.json")
-    thresholds_path = os.path.join(config.model_dir, "thresholds.json")
-    
-    try:
-        with open(schema_path, "r", encoding="utf-8") as f:
-            schema = json.load(f)
-        with open(thresholds_path, "r", encoding="utf-8") as f:
-            thresholds = json.load(f)
-    except Exception as e:
-        logger.error(
-            "Failed to load model artifacts schema/thresholds from '%s'. "
-            "Ensure label_schema.json and thresholds.json exist: %s",
-            config.model_dir, e
-        )
-        return 1
-
-    try:
-        predictor = create_predictor(backend_name=config.predictor_backend, model_dir=config.model_dir)
-        raw_result = predictor.predict(combined_text)
-    except NotImplementedError as e:
-        logger.error("Backend not implemented: %s", e)
-        return 1
-    except Exception as e:
-        logger.error("Prediction failed: %s", e)
-        return 1
-
-    try:
-        final_result = postprocess_predictions(raw_result, schema, thresholds)
-    except Exception as e:
-        logger.error("Prediction postprocessing failed: %s", e)
-        return 1
-
-    selected_labels = get_labels_to_apply(final_result)
-    
-    if not selected_labels:
-        logger.info(
-            "Abstaining: No predicted labels met the confidence threshold. "
-            "Model Version: %s, Backend: %s, Inference Duration: %.2f ms",
-            final_result.model_version, final_result.backend, final_result.inference_duration_ms
-        )
+        issue_title, issue_body, event = _resolve_input(title, body, event_path)
+    except IgnoredEventError as error:
+        logger.info("Event ignored: %s", error)
         return 0
-        
-    scores_log = {
-        p.label: f"{p.score:.4f} (threshold: {p.threshold:.2f})"
-        for p in final_result.predictions
-        if p.selected
+    except MalformedEventError as error:
+        logger.error("Invalid issue event: %s", error)
+        return 1
+
+    try:
+        predictor = create_predictor(config.predictor_backend, config.model_dir)
+        text = prepare_text(issue_title, issue_body, predictor.artifacts.labels)
+        raw_result = predictor.predict(text)
+        result = postprocess_predictions(
+            raw_result,
+            predictor.artifacts.schema,
+            predictor.artifacts.thresholds,
+        )
+    except (ArtifactValidationError, RuntimeError, ValueError, OSError) as error:
+        logger.error("Prediction failed: %s", error)
+        return 1
+
+    selected_labels = get_labels_to_apply(result)
+    scores = {
+        prediction.label: {
+            "score": round(prediction.score, 4),
+            "threshold": prediction.threshold,
+        }
+        for prediction in result.predictions
+        if prediction.selected
     }
-    
     logger.info(
-        "Triage result: Applying labels: %s. Model Version: %s. Inference Duration: %.2f ms. Scores: %s",
-        selected_labels, final_result.model_version, final_result.inference_duration_ms, scores_log
+        "Prediction completed: labels=%s model=%s duration_ms=%.2f scores=%s",
+        selected_labels,
+        result.model_version,
+        result.inference_duration_ms,
+        scores,
     )
-    
-    if is_dry_run:
-        logger.info("=== DRY RUN: Labels to apply ===")
-        print(f"Labels: {selected_labels}")
-        logger.info("=== END DRY RUN ===")
-        return 0
 
-    if event_info is None:
-        logger.error("Cannot perform GitHub label application without valid event payload.")
+    if dry_run:
+        print(f"Labels: {selected_labels}")
+        return 0
+    if not selected_labels:
+        logger.info("No labels met their decision threshold")
+        return 0
+    if event is None:
+        logger.error("Live writes require a GitHub issue event")
         return 1
 
     token = os.environ.get("GITHUB_TOKEN")
     if not token:
-        logger.error("GITHUB_TOKEN environment variable is not set. Cannot authenticate with GitHub.")
+        logger.error("GITHUB_TOKEN is required for live writes")
         return 1
 
     try:
-        client = GitHubClient(token=token, timeout_seconds=config.request_timeout_seconds)
-        
-        logger.info(
-            "Verifying predicted labels exist in the target repository %s/%s...",
-            event_info.owner, event_info.repo
-        )
-        repo_labels = client.get_repo_labels(event_info.owner, event_info.repo)
-        
-        missing_labels = [label for label in selected_labels if label not in repo_labels]
+        client = GitHubClient(token, timeout_seconds=config.request_timeout_seconds)
+        repository_labels = client.get_repo_labels(event.owner, event.repo)
+        missing_labels = [
+            label for label in selected_labels if label not in repository_labels
+        ]
         if missing_labels:
-            logger.error(
-                "Repository Setup Error: The following predicted labels do not exist in repository '%s/%s': %s. "
-                "Please create them first or update KubeTag schema definitions.",
-                event_info.owner, event_info.repo, missing_labels
-            )
+            logger.error("Predicted repository labels do not exist: %s", missing_labels)
             return 1
-            
-        logger.info(
-            "Applying labels %s to issue %s/%s#%d...",
-            selected_labels, event_info.owner, event_info.repo, event_info.issue_number
+        client.add_labels_to_issue(
+            event.owner,
+            event.repo,
+            event.issue_number,
+            selected_labels,
         )
-        
-        applied = client.add_labels_to_issue(
-            owner=event_info.owner,
-            repo=event_info.repo,
-            issue_number=event_info.issue_number,
-            labels=selected_labels
-        )
-        
-        logger.info("Successfully applied labels. Current labels on issue: %s", applied)
-        return 0
-        
-    except Exception as e:
-        logger.error("Failed to perform GitHub label application: %s", e)
+    except GitHubClientError as error:
+        logger.error("GitHub label application failed: %s", error)
         return 1
+
+    logger.info("Applied labels to %s", event.html_url)
+    return 0
