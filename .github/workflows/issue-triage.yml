@@ -3,6 +3,12 @@ name: KubeTag Issue Triage
 on:
   issues:
     types: [opened, reopened]
+  workflow_dispatch:
+    inputs:
+      issue:
+        description: Public issue in owner/repository#number format
+        required: true
+        type: string
 
 permissions:
   contents: read
@@ -15,12 +21,14 @@ jobs:
   triage:
     if: github.actor == github.repository_owner
     runs-on: ubuntu-latest
+    timeout-minutes: 20
 
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
 
       - name: Generate KubeTag App token
+        if: github.event_name == 'issues'
         id: kubetag-token
         uses: actions/create-github-app-token@v3
         with:
@@ -35,17 +43,45 @@ jobs:
           python-version: "3.12"
           enable-cache: true
 
-      - name: Install dependencies
-        run: uv sync --frozen
+      - name: Install KubeTag
+        run: uv sync --frozen --extra model
 
-      - name: Run KubeTag
+      - name: Restore model cache
+        id: model-cache
+        uses: actions/cache@v4
+        with:
+          path: artifacts/model
+          key: kubetag-model-${{ vars.KUBETAG_MODEL_REVISION }}
+
+      - name: Download model
+        env:
+          KUBETAG_MODEL_REPOSITORY: ${{ vars.KUBETAG_MODEL_REPOSITORY }}
+          KUBETAG_MODEL_REVISION: ${{ vars.KUBETAG_MODEL_REVISION }}
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          MODEL_DIR: artifacts/model
+        run: uv run --extra model kubetag-download-model
+
+      - name: Classify issue event
+        if: github.event_name == 'issues'
         env:
           GITHUB_TOKEN: ${{ steps.kubetag-token.outputs.token }}
           GITHUB_EVENT_PATH: ${{ github.event_path }}
-          PREDICTOR_BACKEND: development
+          PREDICTOR_BACKEND: transformer
           MODEL_DIR: artifacts/model
-          APPLY_LABELS: "true"
-          ALLOW_DEVELOPMENT_WRITES: "true"
+          DRY_RUN: "true"
+          APPLY_LABELS: "false"
           LOG_LEVEL: INFO
           REQUEST_TIMEOUT_SECONDS: "30"
-        run: uv run python -m kubetag
+        run: uv run --extra model kubetag
+
+      - name: Classify selected public issue
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          ISSUE_REFERENCE: ${{ inputs.issue }}
+          PREDICTOR_BACKEND: transformer
+          MODEL_DIR: artifacts/model
+          DRY_RUN: "true"
+          APPLY_LABELS: "false"
+          LOG_LEVEL: INFO
+          REQUEST_TIMEOUT_SECONDS: "30"
+        run: uv run --extra model kubetag --dry-run --issue "$ISSUE_REFERENCE"
