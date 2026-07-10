@@ -49,9 +49,22 @@ def run_application(
     if dry_run_override is not None:
         is_dry_run = dry_run_override
         
-    if not is_dry_run and config.predictor_backend == "development":
-        logger.error("Configuration error: Development predictor cannot run in live label-application mode.")
+    if (
+        not is_dry_run
+        and config.predictor_backend == "development"
+        and not config.allow_development_writes
+    ):
+        logger.error(
+            "Development predictor cannot perform live writes unless "
+            "ALLOW_DEVELOPMENT_WRITES=true."
+        )
         return 1
+
+    if not is_dry_run and not config.apply_labels:
+        logger.info(
+            "Live label application is disabled because APPLY_LABELS is false."
+        )
+        return 0
 
     try:
         validate_artifacts(config.model_dir, config.predictor_backend)

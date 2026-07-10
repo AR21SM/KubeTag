@@ -1,7 +1,7 @@
 [project]
 name = "kubetag"
 version = "0.1.0"
-description = "Add your description here"
+description = "Automatic multi-label classification for Kubernetes issues."
 readme = "README.md"
 authors = [
     { name = "AR21SM", email = "mahajanashishar21sm@gmail.com" }
@@ -12,7 +12,7 @@ dependencies = [
 ]
 
 [project.scripts]
-kubetag = "kubetag:main"
+kubetag = "kubetag.__main__:main"
 
 [build-system]
 requires = ["hatchling"]

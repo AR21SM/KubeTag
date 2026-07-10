@@ -13,6 +13,7 @@ class AppConfig:
     apply_labels: bool
     log_level: str
     request_timeout_seconds: int
+    allow_development_writes: bool
 
 def load_config() -> AppConfig:
     """Load and validate the application configuration from environment variables."""
@@ -33,6 +34,9 @@ def load_config() -> AppConfig:
     except ValueError:
         request_timeout_seconds = 30
         
+    allow_dev_str = os.environ.get("ALLOW_DEVELOPMENT_WRITES", "false").lower()
+    allow_development_writes = allow_dev_str in ("true", "1", "yes")
+        
     return AppConfig(
         predictor_backend=predictor_backend,
         model_dir=model_dir,
@@ -40,4 +44,5 @@ def load_config() -> AppConfig:
         apply_labels=apply_labels,
         log_level=log_level,
         request_timeout_seconds=request_timeout_seconds,
+        allow_development_writes=allow_development_writes,
     )
