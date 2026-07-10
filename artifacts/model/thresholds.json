@@ -1,0 +1,13 @@
+{
+  "kind/bug": 0.5,
+  "kind/feature": 0.5,
+  "kind/cleanup": 0.6,
+  "sig/cli": 0.5,
+  "sig/api-machinery": 0.5,
+  "sig/auth": 0.5,
+  "sig/node": 0.5,
+  "sig/scheduling": 0.5,
+  "area/kubectl": 0.5,
+  "area/provider": 0.5,
+  "area/security": 0.5
+}

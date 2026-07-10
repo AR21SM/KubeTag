@@ -1,0 +1,19 @@
+{
+  "action": "opened",
+  "issue": {
+    "number": 12345,
+    "title": "sig-auth: token request failing on kubectl scheduler",
+    "body": "We are getting unauthorized errors when requesting tokens via kubectl scheduler.",
+    "html_url": "https://github.com/kubernetes/kubernetes/issues/12345",
+    "user": {
+      "login": "testuser",
+      "type": "User"
+    }
+  },
+  "repository": {
+    "name": "kubernetes",
+    "owner": {
+      "login": "kubernetes"
+    }
+  }
+}

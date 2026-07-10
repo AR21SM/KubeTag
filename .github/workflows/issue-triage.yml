@@ -1,0 +1,42 @@
+name: KubeTag
+
+on:
+  issues:
+    types: [opened, reopened]
+  workflow_dispatch:
+
+# Prevent concurrent processing of the same issue. Cancel running jobs on new updates.
+concurrency:
+  group: ${{ github.repository }}-${{ github.event.issue.number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  triage:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: uv sync
+
+      - name: Run Triage Model Inference
+        run: uv run python -m kubetag
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PREDICTOR_BACKEND: development
+          MODEL_DIR: artifacts/model
+          DRY_RUN: true
+          APPLY_LABELS: false
+          LOG_LEVEL: INFO
+          REQUEST_TIMEOUT_SECONDS: 30
