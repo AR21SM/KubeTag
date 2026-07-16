@@ -1,15 +1,124 @@
 {
   "labels": [
-    {"name": "kind/bug", "taxonomy": "kind"},
-    {"name": "kind/feature", "taxonomy": "kind"},
-    {"name": "kind/cleanup", "taxonomy": "kind"},
-    {"name": "sig/cli", "taxonomy": "sig"},
-    {"name": "sig/api-machinery", "taxonomy": "sig"},
-    {"name": "sig/auth", "taxonomy": "sig"},
-    {"name": "sig/node", "taxonomy": "sig"},
-    {"name": "sig/scheduling", "taxonomy": "sig"},
-    {"name": "area/kubectl", "taxonomy": "area"},
-    {"name": "area/provider", "taxonomy": "area"},
-    {"name": "area/security", "taxonomy": "area"}
+    {
+      "name": "area/apiserver",
+      "taxonomy": "area"
+    },
+    {
+      "name": "area/conformance",
+      "taxonomy": "area"
+    },
+    {
+      "name": "area/kubectl",
+      "taxonomy": "area"
+    },
+    {
+      "name": "area/kubelet",
+      "taxonomy": "area"
+    },
+    {
+      "name": "area/test",
+      "taxonomy": "area"
+    },
+    {
+      "name": "area/test-infra",
+      "taxonomy": "area"
+    },
+    {
+      "name": "area/usability",
+      "taxonomy": "area"
+    },
+    {
+      "name": "kind/bug",
+      "taxonomy": "kind"
+    },
+    {
+      "name": "kind/cleanup",
+      "taxonomy": "kind"
+    },
+    {
+      "name": "kind/documentation",
+      "taxonomy": "kind"
+    },
+    {
+      "name": "kind/failing-test",
+      "taxonomy": "kind"
+    },
+    {
+      "name": "kind/feature",
+      "taxonomy": "kind"
+    },
+    {
+      "name": "kind/flake",
+      "taxonomy": "kind"
+    },
+    {
+      "name": "sig/api-machinery",
+      "taxonomy": "sig"
+    },
+    {
+      "name": "sig/apps",
+      "taxonomy": "sig"
+    },
+    {
+      "name": "sig/architecture",
+      "taxonomy": "sig"
+    },
+    {
+      "name": "sig/auth",
+      "taxonomy": "sig"
+    },
+    {
+      "name": "sig/autoscaling",
+      "taxonomy": "sig"
+    },
+    {
+      "name": "sig/cli",
+      "taxonomy": "sig"
+    },
+    {
+      "name": "sig/cloud-provider",
+      "taxonomy": "sig"
+    },
+    {
+      "name": "sig/cluster-lifecycle",
+      "taxonomy": "sig"
+    },
+    {
+      "name": "sig/instrumentation",
+      "taxonomy": "sig"
+    },
+    {
+      "name": "sig/network",
+      "taxonomy": "sig"
+    },
+    {
+      "name": "sig/node",
+      "taxonomy": "sig"
+    },
+    {
+      "name": "sig/release",
+      "taxonomy": "sig"
+    },
+    {
+      "name": "sig/scalability",
+      "taxonomy": "sig"
+    },
+    {
+      "name": "sig/scheduling",
+      "taxonomy": "sig"
+    },
+    {
+      "name": "sig/storage",
+      "taxonomy": "sig"
+    },
+    {
+      "name": "sig/testing",
+      "taxonomy": "sig"
+    },
+    {
+      "name": "sig/windows",
+      "taxonomy": "sig"
+    }
   ]
 }
