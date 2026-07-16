@@ -1,5 +1,7 @@
+from __future__ import annotations
+
 from dataclasses import dataclass, field
-from typing import List, Optional
+
 
 @dataclass(frozen=True)
 class IssueEvent:
@@ -7,9 +9,10 @@ class IssueEvent:
     repo: str
     issue_number: int
     title: str
-    body: Optional[str]
+    body: str | None
     action: str
     html_url: str
+
 
 @dataclass(frozen=True)
 class LabelPrediction:
@@ -19,9 +22,10 @@ class LabelPrediction:
     threshold: float
     selected: bool
 
+
 @dataclass(frozen=True)
 class PredictionResult:
     model_version: str
     backend: str
     inference_duration_ms: float
-    predictions: List[LabelPrediction] = field(default_factory=list)
+    predictions: list[LabelPrediction] = field(default_factory=list)
