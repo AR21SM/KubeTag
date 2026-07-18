@@ -68,8 +68,8 @@ jobs:
           GITHUB_EVENT_PATH: ${{ github.event_path }}
           PREDICTOR_BACKEND: transformer
           MODEL_DIR: artifacts/model
-          DRY_RUN: "true"
-          APPLY_LABELS: "false"
+          DRY_RUN: "false"
+          APPLY_LABELS: "true"
           LOG_LEVEL: INFO
           REQUEST_TIMEOUT_SECONDS: "30"
         run: uv run --extra model kubetag
