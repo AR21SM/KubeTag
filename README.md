@@ -1,4 +1,4 @@
-<h1><img src="kubetag_logo.png" alt="KubeTag logo" width="52" height="52" align="middle">&nbsp;KubeTag</h1>
+<h1><img src="kubetag_logo.png" alt="KubeTag logo" width="36" height="36" align="absmiddle" valign="middle">&nbsp;KubeTag</h1>
 
 KubeTag classifies Kubernetes GitHub issues and proposes labels from the
 `kind/*`, `sig/*`, and `area/*` taxonomies. It runs as a stateless GitHub
